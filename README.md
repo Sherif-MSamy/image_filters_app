@@ -1,6 +1,11 @@
 # image_filters_app
 apply some basic filters to image with simple ui
 
+# how to run app
+	- source .venv/bin/activate
+	- pip install streamlit pillow numpy scipy opencv-python
+	- streamlit run app.py
+
 Project Topic:
 Apply all the filters studied during the course and demonstrate their effects through a GUI interface. Additionally, determine the best enhancement combination by showing step‑by‑step how to obtain a high‑quality image from a distorted input image.
 Total degree: 20 marks – partitioned as follows:
