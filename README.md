@@ -2,6 +2,7 @@
 apply some basic filters to image with simple ui
 
 # how to run app
+	- python3 -m venv .venv
 	- source .venv/bin/activate
 	- pip install streamlit pillow numpy scipy opencv-python
 	- streamlit run app.py
