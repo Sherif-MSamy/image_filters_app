@@ -348,7 +348,7 @@ class FrequencyFilters:
         
         pad = kernel_size // 2
         
-        padded = np.pad(img, pad, mode='constant')
+        padded = np.pad(img, pad, mode='reflect')
         
         gau_img = np.zeros_like(img)
 
