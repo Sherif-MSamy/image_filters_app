@@ -55,32 +55,54 @@ PRESETS = {
     # Contrast Enhancement
     # ─────────────────────────────────────────
 
+    # Power Law darkens or brightens the overall tone curve first,
+    # then Histogram Equalization redistributes intensities globally
+    # so the full 0-255 range is utilised — together they fix both
+    # exposure and contrast in one pass.
     "📈 Contrast Enhancement": [
-        "Histogram Equalization",
-        "Power Law (Gamma)"
+        "Power Law (Gamma)",
+        "Histogram Equalization"
     ],
 
+    # Power Law aggressively lifts shadow regions that are too dark
+    # to recover by equalization alone, Gaussian then suppresses the
+    # noise that gets amplified alongside the lifted shadows, and
+    # Histogram Equalization finally stretches the cleaned signal
+    # across the full intensity range.
     "🌙 Dark Image Recovery": [
-        "Histogram Equalization",
-        "Power Law (Gamma)"
+        "Power Law (Gamma)",
+        "Gaussian Filter",
+        "Histogram Equalization"
     ],
 
     # ─────────────────────────────────────────
     # Denoising Pipelines
     # ─────────────────────────────────────────
 
+    # Median is the best filter for salt-and-pepper noise because it
+    # replaces each pixel with the neighbourhood median, killing spikes
+    # without blurring edges. Histogram Equalization then restores the
+    # contrast that the median pass may have slightly flattened.
     "🧹 Median Denoise": [
         "Median",
         "Histogram Equalization"
     ],
 
+    # Gaussian smooths continuous (Gaussian) noise by averaging
+    # neighbours with a bell-curve weight, reducing random intensity
+    # fluctuations. Histogram Equalization follows to recover the
+    # global contrast that smoothing tends to reduce.
     "☁️ Gaussian Smoothing": [
         "Gaussian Filter",
         "Histogram Equalization"
     ],
 
+    # Weighted Smoothing uses a Gaussian-like 3×3 kernel that gives
+    # more importance to the centre pixel, so it smooths gently
+    # without destroying fine structure. Histogram Equalization then
+    # lifts the contrast back after the softening effect.
     "🧼 Smooth + Contrast": [
-        "Gaussian Filter",
+        "Weighted Smoothing",
         "Histogram Equalization"
     ],
 
@@ -88,16 +110,83 @@ PRESETS = {
     # Sharpening Pipelines
     # ─────────────────────────────────────────
 
+    # Histogram Equalization first spreads intensities so that the
+    # Laplacian has balanced contrast to work with — sharpening a
+    # low-contrast image only amplifies flat regions. Laplacian then
+    # uses its 4-connectivity second-derivative kernel to enhance
+    # edges and fine detail on the already well-contrasted image.
     "🔪 Sharpen": [
         "Histogram Equalization",
         "Laplacian"
     ],
 
+    # Median removes salt-and-pepper spikes first so Laplacian does
+    # not mistake noise for edges and amplify it. Gaussian then
+    # smooths the residual continuous noise that Median leaves behind.
+    # Laplacian finally sharpens only the true structural edges that
+    # survived both denoising passes.
     "🧹 Denoise then Sharpen": [
         "Median",
+        "Gaussian Filter",
         "Laplacian"
     ],
 
+    # ─────────────────────────────────────────
+    # Edge Detection Pipelines
+    # ─────────────────────────────────────────
+
+    # Sobel computes the first-order gradient, so any noise present
+    # appears as false edges. Gaussian pre-smooths the image to
+    # suppress that noise before Sobel runs, ensuring only real
+    # structural boundaries produce strong gradient responses.
+    "🔍 Edge Detection": [
+        "Gaussian Filter",
+        "Sobel"
+    ],
+
+    # Median is chosen over Gaussian here because salt-and-pepper
+    # noise creates isolated extreme pixels that Sobel reads as very
+    # strong edges. Median eliminates those spikes entirely before
+    # Sobel runs, producing cleaner and more accurate edge maps than
+    # Gaussian smoothing would in noisy conditions.
+    "🧹 Denoise then Edge": [
+        "Median",
+        "Sobel"
+    ],
+
+    # ─────────────────────────────────────────
+    # Frequency Domain Pipelines
+    # ─────────────────────────────────────────
+
+    # Butterworth Low Pass attenuates high-frequency noise smoothly
+    # in the frequency domain without the ringing artifacts of the
+    # Ideal filter. Histogram Equalization then restores contrast
+    # in the spatial domain after the frequency pass has suppressed
+    # the noise energy.
+    "🌊 Frequency Smooth": [
+        "Butterworth Low Pass",
+        "Histogram Equalization"
+    ],
+
+    # Butterworth High Pass isolates high-frequency edge components
+    # in the frequency domain with a smooth roll-off so mid-frequency
+    # transitions are preserved. Laplacian then reinforces those
+    # recovered edges spatially, producing a doubly-sharpened result
+    # that is stronger than either filter alone.
+    "⚡ Frequency Sharpen": [
+        "Butterworth High Pass",
+        "Laplacian"
+    ],
+
+    # Ideal Low Pass cuts all frequencies beyond the radius with a
+    # hard boundary, effectively removing high-frequency noise in one
+    # step. Median follows in the spatial domain to clean up any
+    # residual impulse noise that the frequency filter cannot remove
+    # because impulse noise is spread across all frequencies.
+    "🔬 Frequency + Spatial Denoise": [
+        "Ideal Low Pass",
+        "Median"
+    ],
 }
 
 
