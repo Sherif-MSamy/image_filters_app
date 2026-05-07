@@ -72,7 +72,25 @@ class PointFilters:
         """
         bitpln_img = img & mask
         return bitpln_img
+    
+    def hist_equ(self, img: np.ndarray) -> np.ndarray:
+        """1.7 Histogram Equalization – enhance image contrast.
 
+        This method redistributes pixel intensity values so that the
+        histogram becomes more uniformly spread across the available
+        intensity range, improving overall image contrast.
+
+        Parameters
+        ----------
+        img : np.ndarray
+            Input grayscale image.
+
+        Returns
+        -------
+        np.ndarray
+            Contrast-enhanced image after histogram equalization.
+        """
+        return cv2.equalizeHist(img)
 
 # ─────────────────────────────────────────────
 #  Category 2 – Spatial Domain Filters
@@ -198,6 +216,43 @@ class FrequencyFilters:
         U, V = np.meshgrid(u, v, indexing='ij')
         dist2cnt = np.sqrt((U - cnt_row) ** 2 + (V - cnt_col) ** 2)
         return dist2cnt
+    
+    # ── Gaussian Kernel Creator ───────────────────────────────────────────────
+
+    @staticmethod
+    def _gaussian_kernel(gau_size, sigma=1) -> np.ndarray:
+        """Create a normalized 2-D Gaussian kernel.
+
+        The kernel is generated using the Gaussian distribution and is
+        commonly used for image smoothing and noise reduction.
+
+        Parameters
+        ----------
+        gau_size : int
+            Size of the Gaussian kernel (must be odd).
+            Example: 3, 5, 7, ...
+
+        sigma : float, optional
+            Standard deviation of the Gaussian distribution.
+            Controls the amount of smoothing.
+            Default is 1.
+
+        Returns
+        -------
+        np.ndarray
+            Normalized Gaussian kernel whose sum equals 1.
+        """
+        kernel_gau = np.zeros((gau_size, gau_size))
+        cnt = gau_size // 2
+        
+        for x in range(gau_size):
+            for y in range(gau_size):
+                dx = x - cnt
+                dy = y - cnt
+                kernel_gau[x, y] = np.exp(-(dx**2 + dy**2) / (2 * sigma**2))
+        
+        kernel_gau = kernel_gau / np.sum(kernel_gau)    # Normalize kernel-
+        return kernel_gau
 
     # ── 3.1 Ideal filters ─────────────────────────────────────────────────
 
@@ -265,6 +320,48 @@ class FrequencyFilters:
         BHPF_img = FrequencyFilters._idft(complex_img * BHPF)
         return BHPF_img
 
+    # ── 3.3 Gaussian filter ────────────────────────────────────────────
+    
+    def gaussian_filter(self, img, kernel_size=5, sigma=1):
+        """Create a normalized 2-D Gaussian kernel.
+
+        The kernel is generated using the Gaussian distribution and is
+        commonly used for image smoothing and noise reduction.
+
+        Parameters
+        ----------
+        gau_size : int
+            Size of the Gaussian kernel (must be odd).
+            Example: 3, 5, 7, ...
+
+        sigma : float, optional
+            Standard deviation of the Gaussian distribution.
+            Controls the amount of smoothing.
+            Default is 1.
+
+        Returns
+        -------
+        np.ndarray
+            Normalized Gaussian kernel whose sum equals 1.
+        """
+        kernel = FrequencyFilters._gaussian_kernel(kernel_size, sigma)
+        
+        pad = kernel_size // 2
+        
+        padded = np.pad(img, pad, mode='constant')
+        
+        gau_img = np.zeros_like(img)
+
+        # Convolution
+        for i in range(img.shape[0]):
+            for j in range(img.shape[1]):
+                
+                region = padded[i:i+kernel_size, j:j+kernel_size]
+                
+                gau_img[i, j] = np.sum(region * kernel)
+        
+        return gau_img.astype(np.uint8)    
+
 
 # ─────────────────────────────────────────────
 #  Entry point
@@ -285,6 +382,7 @@ if __name__ == "__main__":
     pf.power_law(img, gamma=2.2)
     pf.grey_level_slicing(img, a=100, b=150)
     pf.bit_plane_slicing(img)
+    pf.hist_equ(img)
 
     # ── Category 2: Spatial filters ────────────────────────────────────────
     sf = SpatialFilters()
@@ -300,3 +398,4 @@ if __name__ == "__main__":
     ff.ideal_high_pass(img, radius=135)
     ff.butterworth_low_pass(img, radius=13, order=2)
     ff.butterworth_high_pass(img, radius=37, order=5)
+    ff.gaussian_filter(img, kernel_size=5, sigma=1)

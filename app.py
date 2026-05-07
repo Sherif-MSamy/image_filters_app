@@ -40,6 +40,10 @@ uploaded_file = st.file_uploader(
 PRESETS = {
     "── None ──": [],
 
+    # ─────────────────────────────────────────
+    # Contrast Enhancement
+    # ─────────────────────────────────────────
+
     "📖 Full Bone-Scan Pipeline": [
         "Laplacian",
         "Sobel Edge Detection",
@@ -47,12 +51,46 @@ PRESETS = {
         "Power Law (Gamma)"
     ],
 
-    "🔪 Sharpen with Laplacian": [
-        "Laplacian"
+    # ─────────────────────────────────────────
+    # Contrast Enhancement
+    # ─────────────────────────────────────────
+
+    "📈 Contrast Enhancement": [
+        "Histogram Equalization",
+        "Power Law (Gamma)"
     ],
 
-    "🔍 Edge Detection (Sobel only)": [
-        "Sobel Edge Detection"
+    "🌙 Dark Image Recovery": [
+        "Histogram Equalization",
+        "Power Law (Gamma)"
+    ],
+
+    # ─────────────────────────────────────────
+    # Denoising Pipelines
+    # ─────────────────────────────────────────
+
+    "🧹 Median Denoise": [
+        "Median",
+        "Histogram Equalization"
+    ],
+
+    "☁️ Gaussian Smoothing": [
+        "Gaussian Filter",
+        "Histogram Equalization"
+    ],
+
+    "🧼 Smooth + Contrast": [
+        "Gaussian Filter",
+        "Histogram Equalization"
+    ],
+
+    # ─────────────────────────────────────────
+    # Sharpening Pipelines
+    # ─────────────────────────────────────────
+
+    "🔪 Sharpen": [
+        "Histogram Equalization",
+        "Laplacian"
     ],
 
     "🧹 Denoise then Sharpen": [
@@ -60,25 +98,6 @@ PRESETS = {
         "Laplacian"
     ],
 
-    "🌀 Smooth then Detect Edges": [
-        "Average Blur",
-        "Sobel Edge Detection"
-    ],
-
-    "🎚️ Gamma Correction + Sharpen": [
-        "Power Law (Gamma)",
-        "Laplacian"
-    ],
-
-    "🔆 Median + Power Law": [
-        "Median",
-        "Power Law (Gamma)"
-    ],
-
-    "🏔️ Frequency LPF then Sharpen": [
-        "Butterworth Low Pass",
-        "Laplacian"
-    ],
 }
 
 
@@ -93,6 +112,7 @@ DEFAULT_PARAMS = {
     "Power Law (Gamma)": {"gamma": 0.5},
     "Grey Level Slicing": {"a": 100, "b": 150},
     "Bit Plane Slicing": {"bits": 3},
+    "Histogram Equalization": {},
     "Average Blur": {"n": 5},
     "Weighted Smoothing": {},
     "Median": {"size": 7},
@@ -102,6 +122,7 @@ DEFAULT_PARAMS = {
     "Ideal High Pass": {"cutoff": 135},
     "Butterworth Low Pass": {"cutoff": 13, "order": 2},
     "Butterworth High Pass": {"cutoff": 37, "order": 5},
+    "Gaussian Filter": {"kernel_size": 5,"sigma": 1.5}
 }
 
 
@@ -115,6 +136,7 @@ FILTER_CATEGORY = {
     "Power Law (Gamma)": "Point Filters",
     "Grey Level Slicing": "Point Filters",
     "Bit Plane Slicing": "Point Filters",
+    "Histogram Equalization": "Point Filters",
 
     "Average Blur": "Spatial Filters",
     "Weighted Smoothing": "Spatial Filters",
@@ -126,6 +148,7 @@ FILTER_CATEGORY = {
     "Ideal High Pass": "Frequency Filters",
     "Butterworth Low Pass": "Frequency Filters",
     "Butterworth High Pass": "Frequency Filters",
+    "Butterworth High Pass": "Frequency Filters"
 }
 
 
@@ -202,6 +225,10 @@ def apply_filter(
             gray,
             mask=mask
         )
+    
+    elif filter_name == "Histogram Equalization":
+
+        result = point_filters.hist_equ(gray)
 
     # ─────────────────────────────────────────
     # Spatial Filters
@@ -265,6 +292,13 @@ def apply_filter(
             gray,
             radius=params.get("cutoff", 37),
             order=params.get("order", 5)
+        )
+    elif filter_name == "Gaussian Filter":
+
+        result = frequency_filters.gaussian_filter(
+            gray,
+            kernel_size=params.get("kernel_size", 5),
+            sigma=params.get("sigma", 1.5)
         )
 
     else:
@@ -412,6 +446,25 @@ def param_widgets(filter_name: str, key_prefix: str = "") -> dict:
             10,
             default_o,
             key=f"{key_prefix}_ord"
+        )
+
+    elif filter_name == "Gaussian Filter":
+
+        params["kernel_size"] = st.sidebar.slider(
+            "Kernel Size",
+            3,
+            21,
+            5,
+            step=2,
+            key=f"{key_prefix}_gk"
+        )
+
+        params["sigma"] = st.sidebar.slider(
+            "Sigma",
+            0.1,
+            10.0,
+            1.5,
+            key=f"{key_prefix}_sig"
         )
 
     return params
@@ -619,6 +672,7 @@ if uploaded_file is not None:
                 "Ideal High Pass",
                 "Butterworth Low Pass",
                 "Butterworth High Pass",
+                "Gaussian Filter"
             }
 
             for i, fname in enumerate(
